@@ -3,8 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Papa from 'papaparse';
 
 const isWeekend = (dateStr) => {
-  const d = new Date(dateStr);
-  const day = d.getDay();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const day = new Date(y, m - 1, d).getDay();
   return day === 0 || day === 6;
 };
 
@@ -264,8 +264,9 @@ export default function DineInDashboard() {
       if (!orderMap[orderId]) {
         // Use ORDER_TOTAL_LCY as the primary order total
         let bill;
-        if (row.ORDER_TOTAL_LCY !== undefined) {
-          bill = parseFloat(row.ORDER_TOTAL_LCY || 0);
+        const rawTotal = parseFloat(row.ORDER_TOTAL_LCY);
+        if (!isNaN(rawTotal)) {
+          bill = rawTotal;
         } else if (isItemLevel) {
           // Fallback: O_PRICE_FINAL_BILL + WALLET_PAYMENT_AMOUNT
           const finalBill = parseFloat(row.O_PRICE_FINAL_BILL || 0);
@@ -1644,7 +1645,7 @@ export default function DineInDashboard() {
   };
 
   const formatNumber = (num) => new Intl.NumberFormat('en-US').format(Math.round(num));
-  const formatCurrency = (num) => `AED ${new Intl.NumberFormat('en-US').format(Math.round(num))}`;
+  const formatCurrency = (num) => `AED ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(num)}`;
 
   const toggleKitchen = (kitchen) => {
     if (kitchen === 'all') {
@@ -1688,7 +1689,10 @@ export default function DineInDashboard() {
     // Get day of week where Monday = 0, Sunday = 6
     const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() - 1;
     
-    const formatDateStr = (d) => d.toISOString().split('T')[0];
+    const formatDateStr = (d) => {
+      const pad = (n) => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    };
     
     switch(preset) {
       case 'today':
